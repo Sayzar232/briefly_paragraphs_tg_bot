@@ -28,6 +28,10 @@ async def handle_webhook(request: web.Request) -> web.Response:
     return web.Response(text='OK')
 
 
+async def health_check(request):
+    return web.Response(text="OK", status=200)
+
+
 async def admin_handler(request: web.Request) -> web.Response:
     # simple token-based protection (use env ADMIN_TOKEN)
     token = request.query.get('token') or request.headers.get('X-ADMIN-TOKEN')
@@ -65,6 +69,7 @@ def create_app() -> web.Application:
     path = WEBHOOK_PATH if WEBHOOK_PATH.startswith('/') else '/' + WEBHOOK_PATH
     app.router.add_post(path, handle_webhook)
 
+    app.router.add_get("/", health_check)
     # admin route
     app.router.add_get('/admin', admin_handler)
 
