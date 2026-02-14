@@ -56,10 +56,7 @@ async def on_startup(app: web.Application):
 
 
 async def on_cleanup(app: web.Application):
-    try:
-        await bot.delete_webhook()
-    finally:
-        await bot.session.close()
+    await bot.session.close()
 
 
 def create_app() -> web.Application:
