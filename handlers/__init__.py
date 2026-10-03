@@ -1,2 +1,2 @@
-from callbacks_handler import router as callbacks_router
-from message_handler import router as message_router
+from .callbacks_handler import router as callbacks_router
+from .message_handler import router as message_router

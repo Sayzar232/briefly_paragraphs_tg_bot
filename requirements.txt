@@ -1,6 +1,6 @@
 aiogram>=3.0.0
 aiohttp
-aiosqlite
+asyncpg
 python-dotenv
 requests
 beautifulsoup4

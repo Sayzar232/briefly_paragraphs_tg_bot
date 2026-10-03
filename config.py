@@ -6,8 +6,8 @@ load_dotenv()
 # Telegram bot token
 TOKEN = os.getenv("TOKEN")
 
-# SQLite database filename
-DATABASE_NAME = os.getenv("DATABASE_NAME", "users.db")
+# PostgreSQL connection URL (DSN), e.g. postgresql://user:password@host:5432/dbname
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Webhook configuration - set WEBHOOK_URL to your public HTTPS URL (e.g. https://example.com)
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # public url, optional for local testing

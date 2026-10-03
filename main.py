@@ -19,7 +19,7 @@ dp.include_routers(callbacks_router, message_router)
 
 async def on_startup():
     # initialize DB
-    await db.init_db()
+    await db.initialize()
 
     await bot.set_webhook(
         f"{WEBHOOK_URL}{WEBHOOK_PATH}",
