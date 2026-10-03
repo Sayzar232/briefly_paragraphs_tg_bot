@@ -10,10 +10,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from config import TOKEN, WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, WEBHOOK_SECRET, ADMIN_TOKEN
 from handlers.callbacks_handler import router
 from handlers.message_handler import router as message_router
-from database.database import init_db
-
-logging.basicConfig(level=logging.INFO)
-
+from database.database import db
 
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
@@ -23,16 +20,20 @@ dp.include_routers(router, message_router)
 
 async def on_startup():
     # initialize DB
-    await init_db()
+    await db.init_db()
 
-    await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}", secret_token=WEBHOOK_SECRET)
+    await bot.set_webhook(
+        f"{WEBHOOK_URL}{WEBHOOK_PATH}",
+        secret_token=WEBHOOK_SECRET,
+        allowed_updates=["message", "callback_query", "pre_checkout_query"],
+    )
 
 
 async def on_cleanup():
     await bot.session.close()
 
 
-def main():
+async def main():
     dp.startup.register(on_startup)
 
     app = web.Application()
@@ -47,8 +48,9 @@ def main():
 
     setup_application(app, dp, bot=bot)
 
-    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
+    await web._run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
 
 
 if __name__ == '__main__':
-    main()
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(main())
