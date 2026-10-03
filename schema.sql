@@ -1,6 +1,13 @@
 -- publisher это издательство
 -- edition это год издания
 
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT PRIMARY KEY,
+    username TEXT,
+    full_name TEXT,
+    registration_date TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE books (
     id SERIAL PRIMARY KEY,
     subject VARCHAR(255) NOT NULL,

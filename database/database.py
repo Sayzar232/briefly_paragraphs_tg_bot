@@ -40,6 +40,48 @@ class Database:
                 '''
             )
 
+            await conn.execute(
+                '''
+                CREATE TABLE books (
+                    id SERIAL PRIMARY KEY,
+                    subject VARCHAR(255) NOT NULL,
+                    grade INT NOT NULL,
+                    authors VARCHAR(255) NOT NULL,
+                    publisher VARCHAR(255),
+                    edition VARCHAR(255) NOT NULL,
+                    pages INT NOT NULL,
+                    url VARCHAR(500),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                '''
+            )
+
+            await conn.execute(
+                '''
+                CREATE TABLE paragraphs (
+                    id SERIAL PRIMARY KEY,
+                    book_id INT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+                    paragraph_number INT NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    pages VARCHAR(255) NOT NULL,
+                    text TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                '''
+            )
+
+            await conn.execute(
+                '''
+                CREATE TABLE summaries (
+                    id SERIAL PRIMARY KEY,
+                    paragraph_id INT NOT NULL REFERENCES paragraphs(id) ON DELETE CASCADE,
+                    summary TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    questions TEXT
+                );
+                '''
+            )
+
     async def add_user(self, user_id: int, username: str, full_name: str):
         async with self.pool.acquire() as conn:
             await conn.execute(
@@ -65,6 +107,25 @@ class Database:
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow("SELECT COUNT(*) FROM users;")
             return row[0] if row else 0
+
+    async def add_book(
+        self,
+        subject: str,
+        grade: int,
+        authors: str,
+        publisher: str,
+        edition: str,
+        pages: int,
+        url: str
+    ):
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO books (subject, grade, authors, publisher, edition, pages, url)
+                VALUES ($1, $2, $3, $4, $5, $6, $7);
+                """,
+                subject, grade, authors, publisher, edition, pages, url
+            )
 
 
 db = Database()

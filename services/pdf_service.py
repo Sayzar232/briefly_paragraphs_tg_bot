@@ -19,7 +19,8 @@ class PDFParser:
             authors: str,
             publisher: str,
             edition: str,
-            url: str
+            url: str,
+            check_paragraph_func: callable
         ):
         self.file_path = file_path
         self.pdf_reader = pypdf.PdfReader(file_path)
@@ -29,12 +30,10 @@ class PDFParser:
         self.publisher = publisher
         self.edition = edition
         self.url = url
-        self.pages = len(self.pdf_reader.pages)
+        self.pages = len(self.pdf_reader.pages),
+        self.check_paragraph_func = check_paragraph_func
         self.pages_content = []
-        self.text = self.get_text()
-
-        self.save_text_to_file(f"{self.file_path}.txt")  # Save extracted text to a file
-        self.split_by_paragraphs()  # Split the text into paragraphs and save to a file
+        self.text = None
 
     def get_text(self) -> str:
         """Extract text from PDF file"""
@@ -81,7 +80,7 @@ class PDFParser:
         paragraph_number = 1
         for num, page in enumerate(self.pages_content):
             for i in page.split("\n"):
-                if i.strip().lower() == "вспомните":
+                if self.check_paragraph_func(i):
                     paragraph = Paragraph(
                         pages=self.pages_content[start_page - 1:num + 1],
                         start_page=start_page,
@@ -98,6 +97,11 @@ class PDFParser:
 
         return paragraphs
 
+    def run(self):
+        """Run the PDF parser"""
+        self.text = self.get_text()
+        paragraphs = self.split_by_paragraphs()
+
 
 if __name__ == "__main__":
     # Example usage
@@ -108,6 +112,7 @@ if __name__ == "__main__":
         authors="Author Name",
         publisher="Publisher Name",
         edition="2019",
-        url="https://example.com/geography"
+        url="https://example.com/geography",
+        check_paragraph_func=lambda text: text.strip().lower() == "вспомните"
     )
     print(f"Extracted text from {pdf_parser.file_path}")
