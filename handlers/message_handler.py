@@ -1,8 +1,8 @@
 from aiogram import Router, types
 from aiogram.filters import CommandStart
-from database import add_user
+from database.database import add_user
 
-from keyboards import books_keyboard
+from utils.keyboards import books_keyboard
 
 router = Router()
 

@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from parser import extract_paragraphs
+from utils.parser import extract_paragraphs
 
 def get_paragraphs_keyboard(url):
     """Return keyboard with paragraphs"""
