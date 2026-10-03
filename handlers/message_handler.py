@@ -1,6 +1,6 @@
 from aiogram import Router, types
 from aiogram.filters import CommandStart
-from database.database import db
+from database import db
 
 from utils.keyboards import books_keyboard
 

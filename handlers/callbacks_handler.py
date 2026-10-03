@@ -1,9 +1,9 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.types import BufferedInputFile
-from utils.parser import get_paragraphs
+from services import get_paragraphs
 from config import book_numbers
-from utils.keyboards import get_paragraphs_keyboard
+from utils import get_paragraphs_keyboard
 from aiogram.fsm.context import FSMContext
 
 router = Router()

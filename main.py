@@ -8,14 +8,13 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
 from config import TOKEN, WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, WEBHOOK_SECRET, ADMIN_TOKEN
-from handlers.callbacks_handler import router
-from handlers.message_handler import router as message_router
-from database.database import db
+from handlers import callbacks_router, message_router
+from database import db
 
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
-dp.include_routers(router, message_router)
+dp.include_routers(callbacks_router, message_router)
 
 
 async def on_startup():
