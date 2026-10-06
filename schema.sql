@@ -24,7 +24,7 @@ CREATE TABLE paragraphs (
     id SERIAL PRIMARY KEY,
     book_id INT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
     paragraph_number INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
+    title VARCHAR(255),
     pages VARCHAR(255) NOT NULL,
     text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

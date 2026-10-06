@@ -42,7 +42,7 @@ class Database:
 
             await conn.execute(
                 '''
-                CREATE TABLE books (
+                CREATE TABLE IF NOT EXISTS books (
                     id SERIAL PRIMARY KEY,
                     subject VARCHAR(255) NOT NULL,
                     grade INT NOT NULL,
@@ -58,11 +58,11 @@ class Database:
 
             await conn.execute(
                 '''
-                CREATE TABLE paragraphs (
+                CREATE TABLE IF NOT EXISTS paragraphs (
                     id SERIAL PRIMARY KEY,
                     book_id INT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
                     paragraph_number INT NOT NULL,
-                    title VARCHAR(255) NOT NULL,
+                    title VARCHAR(255),
                     pages VARCHAR(255) NOT NULL,
                     text TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -72,7 +72,7 @@ class Database:
 
             await conn.execute(
                 '''
-                CREATE TABLE summaries (
+                CREATE TABLE IF NOT EXISTS summaries (
                     id SERIAL PRIMARY KEY,
                     paragraph_id INT NOT NULL REFERENCES paragraphs(id) ON DELETE CASCADE,
                     summary TEXT NOT NULL,
@@ -108,7 +108,7 @@ class Database:
             row = await conn.fetchrow("SELECT COUNT(*) FROM users;")
             return row[0] if row else 0
 
-    async def add_book(
+    async def ensure_book(
         self,
         subject: str,
         grade: int,
@@ -119,13 +119,50 @@ class Database:
         url: str
     ):
         async with self.pool.acquire() as conn:
-            await conn.execute(
+            row = await conn.fetchrow(
                 """
-                INSERT INTO books (subject, grade, authors, publisher, edition, pages, url)
-                VALUES ($1, $2, $3, $4, $5, $6, $7);
+                SELECT id FROM books
+                WHERE subject = $1 AND grade = $2 AND authors = $3 AND publisher = $4 AND edition = $5;
                 """,
-                subject, grade, authors, publisher, edition, pages, url
+                subject, grade, authors, publisher, edition
             )
+
+            if row is None:
+                row = await conn.fetchrow(
+                    """
+                    INSERT INTO books (subject, grade, authors, publisher, edition, pages, url)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    RETURNING id;
+                    """,
+                    subject, grade, authors, publisher, edition, pages, url
+                )
+
+            return row['id']
+
+    async def add_paragraph(
+            self,
+            book_id: int,
+            paragraph_number: int,
+            title: str,
+            pages: str,
+            text: str
+        ):
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT id FROM paragraphs
+                WHERE book_id = $1 AND paragraph_number = $2;
+                """,
+                book_id, paragraph_number
+            )
+            if row is None:
+                await conn.execute(
+                    """
+                    INSERT INTO paragraphs (book_id, paragraph_number, title, pages, text)
+                    VALUES ($1, $2, $3, $4, $5);
+                    """,
+                    book_id, paragraph_number, title, pages, text
+                )
 
 
 db = Database()
