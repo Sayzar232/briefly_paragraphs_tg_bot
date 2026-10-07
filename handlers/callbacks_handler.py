@@ -1,38 +1,37 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
-from aiogram.types import BufferedInputFile
-from services import get_paragraphs
-from config import book_numbers
-from utils import get_paragraphs_keyboard
+from utils import get_subjects_keyboard, get_books_keyboard
 from aiogram.fsm.context import FSMContext
 
 router = Router()
 
-@router.callback_query(F.data.startswith("book_"))
+
+@router.callback_query(F.data.startswith("grade_"))
 async def handle_book_callback(callback: CallbackQuery, state: FSMContext):
-    book_number = callback.data.split("_")[1]
+    await callback.answer()
 
-    await state.update_data(book_number=book_number)
+    grade = int(callback.data.split("_")[1])
 
-    url = book_numbers[book_number]
+    await state.update_data(grade=grade)
 
-    await callback.message.answer("Теперь выбери нужный параграф", reply_markup=get_paragraphs_keyboard(url))
+    await callback.message.edit_text(
+        "Теперь выбери предмет",
+        reply_markup=get_subjects_keyboard(grade)
+    )
 
-    await callback.answer()  # Acknowledge the callback to remove the loading state
 
+@router.callback_query(F.data.startswith("subject_"))
+async def handle_book_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
 
-@router.callback_query(F.data.startswith("paragraph_"))
-async def handle_paragraph_callback(callback: CallbackQuery, state: FSMContext):
-    paragraph_text = callback.data
+    state_data = state.get_data()
 
-    data = await state.get_data()
-    book_number = data.get("book_number")
+    subject = callback.data.split("_")[1]
+    grade = state["grade"]
 
-    image_bytes = get_paragraphs(paragraph_text.split("_")[1], book_number)
-    
-    if image_bytes:
-        await callback.message.answer_photo(BufferedInputFile(image_bytes, "paragraph.jpg"), caption=f"Вот краткое содержание параграфа {paragraph_text.split('_')[1]}")
-    else:
-        await callback.message.answer("Sorry, could not retrieve the content for this paragraph.")
-    
-    await callback.answer()  # Acknowledge the callback to remove the loading state
+    await state.update_data(subject=subject)
+
+    await callback.message.edit_text(
+        "Выбери Авторов",
+        reply_markup=get_books_keyboard(grade)
+    )

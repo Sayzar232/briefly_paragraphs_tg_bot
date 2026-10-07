@@ -164,6 +164,15 @@ class Database:
                     book_id, paragraph_number, title, pages, text
                 )
 
+    async def get_books(self, grade: int, subject: str):
+        async with self.pool.acquire() as conn:
+            books = await conn.fetch(
+                "SELECT id, authors, edition FROM books WHERE grade = $1 AND subject = $2;",
+                grade, subject
+            )
+
+            return [dict(row) for row in books]
+
     async def get_subjects(self, grade: int):
         async with self.pool.acquire() as conn:
             subjects = await conn.fetch(
