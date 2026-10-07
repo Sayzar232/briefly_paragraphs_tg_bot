@@ -164,5 +164,14 @@ class Database:
                     book_id, paragraph_number, title, pages, text
                 )
 
+    async def get_subjects(self, grade: int):
+        async with self.pool.acquire() as conn:
+            subjects = await conn.fetch(
+                "SELECT DISTINCT subject FROM books WHERE grade = $1;",
+                grade
+            )
+
+            return [row["subject"] for row in subjects]
+
 
 db = Database()
