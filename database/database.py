@@ -182,5 +182,26 @@ class Database:
 
             return [row["subject"] for row in subjects]
 
+    async def get_paragraphs(self, book_id):
+        async with self.pool.acquire() as conn:
+            paragraphs = await conn.fetch(
+                "SELECT paragraph_number, title FROM paragraphs WHERE book_id = $1 ORDER BY paragraph_number;",
+                book_id
+            )
+
+            return [dict(row) for row in paragraphs]
+
+    async def get_paragraph(self, book_id: int, paragraph_number: int):
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT id, paragraph_number, title, pages, text
+                FROM paragraphs
+                WHERE book_id = $1 AND paragraph_number = $2;
+                """,
+                book_id, paragraph_number
+            )
+
+            return dict(row) if row else None
 
 db = Database()
