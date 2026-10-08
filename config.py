@@ -22,10 +22,3 @@ WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "change_me")  # secret path for web
 
 # Simple admin token to protect admin panel (set in env)
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "change_me")
-
-book_numbers = {
-    "3345": "https://gdzbakulin.ru/8-klass/kratkie-soderzhaniya/kratkiy-pereskaz-8-klass-medinskiy-torkunov/",
-    "3367": "https://gdzbakulin.ru/8-klass/kratkie-soderzhaniya/kratkiy-pereskaz-8-klass-pasechnik/",
-    "3355": "https://gdzbakulin.ru/8-klass/kratkie-soderzhaniya/kratkiy-pereskaz-fizika-8-klass-uchebnik/",
-    "3327": "https://gdzbakulin.ru/8-klass/kratkie-soderzhaniya/kratkiy-pereskaz-8-klass-bogolubov/",
-}

@@ -30,6 +30,12 @@ CREATE TABLE paragraphs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Уникальный «естественный ключ» книги: один и тот же учебник не должен
+-- добавляться повторно. publisher может быть NULL, поэтому сравниваем через
+-- COALESCE (в PostgreSQL NULL != NULL ломал бы уникальность).
+CREATE UNIQUE INDEX IF NOT EXISTS books_natural_key
+    ON books (subject, grade, authors, COALESCE(publisher, ''), edition);
+
 CREATE TABLE summaries (
     id SERIAL PRIMARY KEY,
     paragraph_id INT NOT NULL REFERENCES paragraphs(id) ON DELETE CASCADE,

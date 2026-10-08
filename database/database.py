@@ -58,6 +58,13 @@ class Database:
 
             await conn.execute(
                 '''
+                CREATE UNIQUE INDEX IF NOT EXISTS books_natural_key
+                    ON books (subject, grade, authors, COALESCE(publisher, ''), edition);
+                '''
+            )
+
+            await conn.execute(
+                '''
                 CREATE TABLE IF NOT EXISTS paragraphs (
                     id SERIAL PRIMARY KEY,
                     book_id INT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
@@ -117,27 +124,27 @@ class Database:
         edition: str,
         pages: int,
         url: str
-    ):
+    ) -> int:
+        """Гарантировать наличие книги в БД и вернуть её id одним запросом.
+
+        INSERT ... ON CONFLICT DO UPDATE RETURNING id: если книги ещё нет —
+        вставляет новую строку, если есть (по уникальному индексу
+        books_natural_key) — возвращает id существующей и освежает
+        pages/url. Атомарно, без гонок между параллельными вызовами.
+        """
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                SELECT id FROM books
-                WHERE subject = $1 AND grade = $2 AND authors = $3 AND publisher = $4 AND edition = $5;
+                INSERT INTO books (subject, grade, authors, publisher, edition, pages, url)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT (subject, grade, authors, (COALESCE(publisher, '')), edition)
+                DO UPDATE SET pages = EXCLUDED.pages, url = EXCLUDED.url
+                RETURNING id;
                 """,
-                subject, grade, authors, publisher, edition
+                subject, grade, authors, publisher, edition, pages, url
             )
 
-            if row is None:
-                row = await conn.fetchrow(
-                    """
-                    INSERT INTO books (subject, grade, authors, publisher, edition, pages, url)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
-                    RETURNING id;
-                    """,
-                    subject, grade, authors, publisher, edition, pages, url
-                )
-
-            return row['id']
+            return row["id"]
 
     async def add_paragraph(
             self,
