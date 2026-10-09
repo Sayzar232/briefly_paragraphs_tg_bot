@@ -2,6 +2,25 @@ import asyncpg
 from config import DATABASE_URL
 
 
+def _row_field(row, name: str):
+    """Прочитать поле параграфа из dict-строки или объекта (Paragraph)."""
+    if isinstance(row, dict):
+        return row.get(name)
+    return getattr(row, name, None)
+
+
+def _row_pages(row) -> str:
+    """Значение для колонки paragraphs.pages — диапазон вида «12-15».
+
+    У Paragraph атрибут pages — список текстов страниц, поэтому диапазон
+    собираем из start_page/end_page; у dict-строки поле pages уже готово.
+    """
+    pages = _row_field(row, "pages")
+    if isinstance(pages, (list, tuple)):
+        return f"{_row_field(row, 'start_page')}-{_row_field(row, 'end_page')}"
+    return pages
+
+
 class Database:
     def __init__(
         self,
@@ -146,30 +165,66 @@ class Database:
 
             return row["id"]
 
-    async def add_paragraph(
-            self,
-            book_id: int,
-            paragraph_number: int,
-            title: str,
-            pages: str,
-            text: str
-        ):
-        async with self.pool.acquire() as conn:
-            row = await conn.fetchrow(
-                """
-                SELECT id FROM paragraphs
-                WHERE book_id = $1 AND paragraph_number = $2;
-                """,
-                book_id, paragraph_number
-            )
-            if row is None:
-                await conn.execute(
-                    """
-                    INSERT INTO paragraphs (book_id, paragraph_number, title, pages, text)
-                    VALUES ($1, $2, $3, $4, $5);
-                    """,
-                    book_id, paragraph_number, title, pages, text
+    async def add_paragraphs(self, paragraphs) -> int:
+        """Добавить все параграфы одним SQL-запросом вместо одного на параграф.
+
+        paragraphs — итерабель из объектов Paragraph или dict-строк с полями
+        book_id, paragraph_number, title, pages, text. Параграфы, которые уже
+        есть в БД (тот же book_id + paragraph_number), пропускаются — так же,
+        как в add_paragraph. Дубли внутри пачки тоже вставляются один раз.
+
+        Возвращает число реально вставленных строк.
+        """
+        book_ids: list[int] = []
+        numbers: list[int] = []
+        titles: list[str | None] = []
+        pages_list: list[str] = []
+        texts: list[str] = []
+        seen: set[tuple[int, int]] = set()
+
+        for paragraph in paragraphs:
+            book_id = _row_field(paragraph, "book_id")
+            number = _row_field(paragraph, "paragraph_number")
+
+            if book_id is None:
+                raise ValueError(
+                    f"У параграфа №{number} не задан book_id — "
+                    "сначала сохраните книгу и проставьте book_id"
                 )
+            if (book_id, number) in seen:
+                continue
+
+            seen.add((book_id, number))
+            book_ids.append(book_id)
+            numbers.append(number)
+            titles.append(_row_field(paragraph, "title"))
+            pages_list.append(_row_pages(paragraph))
+            texts.append(_row_field(paragraph, "text"))
+
+        if not book_ids:
+            return 0
+
+        async with self.pool.acquire() as conn:
+            # Один INSERT на всю пачку: unnest разворачивает массивы в строки,
+            # WHERE NOT EXISTS отсеивает уже сохранённые параграфы.
+            result = await conn.execute(
+                """
+                INSERT INTO paragraphs (book_id, paragraph_number, title, pages, text)
+                SELECT src.book_id, src.paragraph_number, src.title, src.pages, src.text
+                FROM unnest($1::int[], $2::int[], $3::text[], $4::text[], $5::text[])
+                     AS src(book_id, paragraph_number, title, pages, text)
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM paragraphs p
+                    WHERE p.book_id = src.book_id
+                      AND p.paragraph_number = src.paragraph_number
+                );
+                """,
+                book_ids, numbers, titles, pages_list, texts,
+            )
+
+        # asyncpg возвращает "INSERT 0 <count>".
+        return int(result.split()[-1])
 
     async def get_books(self, grade: int, subject: str):
         async with self.pool.acquire() as conn:

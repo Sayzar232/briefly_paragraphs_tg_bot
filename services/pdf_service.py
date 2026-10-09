@@ -39,16 +39,6 @@ class Paragraph:
             return None
         return self.title_func(self.pages[0])
 
-    async def add_to_database(self, db: Database) -> None:
-        """Сохранить параграф в БД (пропускается, если он уже есть)."""
-        await db.add_paragraph(
-            book_id=self.book_id,
-            paragraph_number=self.paragraph_number,
-            title=self.title,
-            pages=f"{self.start_page}-{self.end_page}",
-            text=self.text,
-        )
-
 
 class PDFParser:
     """Парсер учебника: извлекает текст и разбивает его на параграфы."""
@@ -62,10 +52,10 @@ class PDFParser:
         grade: int,
         subject: str,
         authors: str,
-        publisher: str,
         edition: str,
         url: str,
         check_paragraph_func: Callable[[str], bool],
+        publisher: str = "Просвещение",
         title_func: Callable[[str], str | None] | None = None,
     ):
         self.file_path = file_path
@@ -178,6 +168,10 @@ class PDFParser:
             url=self.url,
         )
 
+    async def add_paragraphs_to_database(self, paragraphs) -> int:
+        """Сохранить все параграфы одним SQL-запросом. Возвращает их число."""
+        return await db.add_paragraphs(paragraphs)
+
     async def run(self, output_file: str = "paragraphs.txt") -> list[Paragraph]:
         """Полный цикл: извлечь текст, разбить на параграфы, сохранить в БД."""
         self.text = self.get_text()
@@ -187,7 +181,8 @@ class PDFParser:
 
         for paragraph in paragraphs:
             paragraph.book_id = book_id
-            await paragraph.add_to_database(db)
-            print(f"Paragraph {paragraph.paragraph_number} added to database")
+
+        added = await self.add_paragraphs_to_database(paragraphs)
+        print(f"{added} paragraphs added to database")
 
         return paragraphs

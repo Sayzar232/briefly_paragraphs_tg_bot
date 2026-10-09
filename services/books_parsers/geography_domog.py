@@ -48,12 +48,11 @@ async def main() -> None:
     await db.initialize()
 
     parser = PDFParser(
-        file_path=str(Path(__file__).resolve().parent.parent.parent / "geography.pdf"),
-        grade=9,
+        file_path=str(Path(__file__).resolve().parent.parent.parent / "books/geography_8.pdf"),
+        grade=8,
         subject="Geography",
-        authors="Домогацких Е.М., Алексеевский Н.И., Клюев Н.Н.",
-        publisher="Минпросвещения России",
-        edition="2019",
+        authors="Домогацких Е.М., Алексеевский Н.И.",
+        edition="2022",
         url="https://example.com/geography",
         check_paragraph_func=lambda text: text.strip().lower() == "вспомните",
         title_func=get_title_geography,
