@@ -7,7 +7,7 @@
 
 from typing import Callable
 
-import pypdf
+import fitz
 
 from database import db, Database
 
@@ -92,7 +92,7 @@ class PDFParser:
         title_func: Callable[[str], str | None] | None = None,
     ):
         self.file_path = file_path
-        self.pdf_reader = pypdf.PdfReader(file_path)
+        self.pdf_document = fitz.open(file_path)
         self.grade = grade
         self.subject = subject
         self.authors = authors
@@ -103,7 +103,7 @@ class PDFParser:
 
         self.check_paragraph_func = check_paragraph_func
         self.title_func = title_func
-        self.pages = len(self.pdf_reader.pages)
+        self.pages = self.pdf_document.page_count
         self.pages_content: list[str] = []
         self.text: str | None = None
 
@@ -112,10 +112,9 @@ class PDFParser:
         self.pages_content = []
         parts: list[str] = []
 
-        for page_number, page in enumerate(self.pdf_reader.pages, start=1):
-            page_text = page.extract_text() or ""
+        for page_index in range(self.pdf_document.page_count):
+            page_text = self.pdf_document.load_page(page_index).get_text() or ""
             self.pages_content.append(page_text)
-            parts.append(f"PDFPARSER: Page {page_number}\n{page_text}\n")
 
         print(f"Extracted text from {len(self.pages_content)} pages")
         return "".join(parts)
