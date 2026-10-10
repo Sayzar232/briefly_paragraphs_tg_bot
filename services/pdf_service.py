@@ -21,16 +21,18 @@ class Paragraph:
         start_page: int,
         end_page: int,
         paragraph_number: int,
+        check_paragraph_func: Callable,
         book_id: int | None = None,
         title_func: Callable[[str], str | None] | None = None,
     ):
         self.pages = pages
-        self.text = "\n".join(pages)
         self.start_page = start_page
         self.end_page = end_page
         self.paragraph_number = paragraph_number
         self.book_id = book_id
         self.title_func = title_func
+        self.check_paragraph_func = check_paragraph_func
+        self.text = self.get_paragraph_text()
         self.title = self.get_title()
 
     def get_title(self) -> str | None:
@@ -38,6 +40,36 @@ class Paragraph:
         if self.title_func is None or not self.pages:
             return None
         return self.title_func(self.pages[0])
+
+    def _get_last_paragraph_page(self, page: str, marker_state: bool = False):
+        paragraph_page = []
+        is_marker_found = marker_state
+
+        for line in page.split("\n"):
+            if self.check_paragraph_func(line):
+                is_marker_found = True if not is_marker_found else False
+
+            if is_marker_found:
+                paragraph_page.append(line)
+
+        return "\n".join(paragraph_page) or None
+
+    def get_paragraph_text(self):
+        paragraph_text = ""
+
+        first_page = self._get_last_paragraph_page(self.pages[0])
+
+        paragraph_text = paragraph_text + first_page + "\n"
+
+        for count, page in enumerate(self.pages):
+            if count != 0 and count != len(self.pages) - 1:
+                paragraph_text = paragraph_text + page + "\n"
+
+        last_page = self._get_last_paragraph_page(self.pages[-1], True)
+
+        paragraph_text = paragraph_text + last_page + "\n"
+
+        return paragraph_text
 
 
 class PDFParser:
@@ -136,10 +168,11 @@ class PDFParser:
                 if first_marker_seen:
                     paragraphs.append(
                         Paragraph(
-                            pages=self.pages_content[start_page - 1 : page_index],
+                            pages=self.pages_content[start_page - 1 : page_index + 1],
                             start_page=start_page,
                             end_page=page_index,
                             paragraph_number=paragraph_number,
+                            check_paragraph_func=self.check_paragraph_func,
                             title_func=self.title_func,
                         )
                     )
