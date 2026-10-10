@@ -88,6 +88,7 @@ class PDFParser:
         url: str,
         check_paragraph_func: Callable[[str], bool],
         publisher: str = "Просвещение",
+        part: int | None = None,
         title_func: Callable[[str], str | None] | None = None,
     ):
         self.file_path = file_path
@@ -98,6 +99,8 @@ class PDFParser:
         self.publisher = publisher
         self.edition = edition
         self.url = url
+        self.part = part
+
         self.check_paragraph_func = check_paragraph_func
         self.title_func = title_func
         self.pages = len(self.pdf_reader.pages)
@@ -149,6 +152,7 @@ class PDFParser:
             start_page=start_page,
             end_page=start_page + len(pages) - 1,
             paragraph_number=paragraph_number,
+            check_paragraph_func=self.check_paragraph_func,
             title_func=self.title_func,
         )
 
@@ -199,6 +203,7 @@ class PDFParser:
             edition=self.edition,
             pages=self.pages,
             url=self.url,
+            part=self.part
         )
 
     async def add_paragraphs_to_database(self, paragraphs) -> int:

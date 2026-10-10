@@ -17,6 +17,7 @@ CREATE TABLE books (
     edition VARCHAR(255) NOT NULL,
     pages INT NOT NULL,
     url VARCHAR(500),
+    part INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -31,10 +32,11 @@ CREATE TABLE paragraphs (
 );
 
 -- Уникальный «естественный ключ» книги: один и тот же учебник не должен
--- добавляться повторно. publisher может быть NULL, поэтому сравниваем через
--- COALESCE (в PostgreSQL NULL != NULL ломал бы уникальность).
+-- добавляться повторно. publisher и part могут быть NULL, поэтому сравниваем
+-- через COALESCE (в PostgreSQL NULL != NULL ломал бы уникальность).
+-- Выражения обязаны совпадать с ON CONFLICT в database.ensure_book.
 CREATE UNIQUE INDEX IF NOT EXISTS books_natural_key
-    ON books (subject, grade, authors, COALESCE(publisher, ''), edition);
+    ON books (subject, grade, authors, COALESCE(publisher, ''), edition, COALESCE(part, 0));
 
 CREATE TABLE summaries (
     id SERIAL PRIMARY KEY,

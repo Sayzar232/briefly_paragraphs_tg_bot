@@ -69,18 +69,36 @@ class Database:
                     publisher VARCHAR(255),
                     edition VARCHAR(255) NOT NULL,
                     pages INT NOT NULL,
+                    part INT,
                     url VARCHAR(500),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
                 '''
             )
 
-            await conn.execute(
-                '''
-                CREATE UNIQUE INDEX IF NOT EXISTS books_natural_key
-                    ON books (subject, grade, authors, COALESCE(publisher, ''), edition);
-                '''
+            # Старая версия индекса была без part: пересоздаём, иначе
+            # ON CONFLICT (…, part) в ensure_book не находит своего
+            # ограничения и падает с InvalidColumnReferenceError.
+            # part может быть NULL, а NULL != NULL в уникальном индексе,
+            # поэтому берём COALESCE(part, 0) — так же, как в ON CONFLICT.
+            index_row = await conn.fetchrow(
+                "SELECT indexdef FROM pg_indexes "
+                "WHERE schemaname = current_schema() "
+                "  AND indexname = 'books_natural_key';"
             )
+            if index_row is None or "COALESCE(part" not in index_row["indexdef"]:
+                await conn.execute("DROP INDEX IF EXISTS books_natural_key;")
+                await conn.execute(
+                    '''
+                    CREATE UNIQUE INDEX books_natural_key
+                        ON books (
+                            subject, grade, authors,
+                            COALESCE(publisher, ''),
+                            edition,
+                            COALESCE(part, 0)
+                        );
+                    '''
+                )
 
             await conn.execute(
                 '''
@@ -142,7 +160,8 @@ class Database:
         publisher: str,
         edition: str,
         pages: int,
-        url: str
+        url: str,
+        part: int
     ) -> int:
         """Гарантировать наличие книги в БД и вернуть её id одним запросом.
 
@@ -154,13 +173,13 @@ class Database:
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO books (subject, grade, authors, publisher, edition, pages, url)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT (subject, grade, authors, (COALESCE(publisher, '')), edition)
+                INSERT INTO books (subject, grade, authors, publisher, edition, pages, url, part)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (subject, grade, authors, (COALESCE(publisher, '')), edition, (COALESCE(part, 0)))
                 DO UPDATE SET pages = EXCLUDED.pages, url = EXCLUDED.url
                 RETURNING id;
                 """,
-                subject, grade, authors, publisher, edition, pages, url
+                subject, grade, authors, publisher, edition, pages, url, part
             )
 
             return row["id"]

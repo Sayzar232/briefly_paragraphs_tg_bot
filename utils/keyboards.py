@@ -63,7 +63,7 @@ async def get_paragraphs_keyboard(book_id: int):
 
         row.append(InlineKeyboardButton(text=text, callback_data=f"paragraph_{number}"))
 
-        if len(row) == 5:
+        if len(row) == 2:
             rows.append(row)
             row = []
 
